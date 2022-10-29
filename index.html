@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script>
+        window.addEventListener('load', () => {
+            const root = document.querySelector('#root')
+            let connection = null;
+            let timeOutId;
+            let timerId;
+            const postToPostNews = () => {
+                let xhr = new XMLHttpRequest()
+                xhr.open('GET', 'http://127.0.0.1:8080/POST/news')
+                xhr.send()
+            }
+            const log = (msg) => {
+                const news = document.createElement('p')
+                news.textContent = msg
+                root.appendChild(news)
+            }
+
+            const connect = () => {
+                disconnect();
+                const wsURI = (window.location.protocol == 'https:' && 'wss://' || 'ws://') + window.location.host
+                connection = new WebSocket(wsURI);
+                log('Connecting...')
+                connection.onopen = () => {
+                    log('You are connected to webSocket.')
+                    timerId = setInterval(()=>{
+                        postToPostNews()
+                        connection.send('ping')
+                    }, 5000)
+                }
+                connection.onmessage = (response) => {
+                    clearTimeout(timeOutId);
+                    timeOutId = setTimeout(()=> {
+                        disconnect()
+                    }, 10000)
+                    if (response.data != 'ping') {
+                        log(response.data)
+                    }
+                }
+                connection.onclose = () => {
+                    log('Disconnecting...');
+                    connection = null
+                }
+            }
+            const disconnect = () => {
+                if (connection != null) {
+                    connection.close()
+                    connection = null
+                    clearInterval(timerId)
+                    timerId = null
+                }
+            }
+            connect()
+        })
+    </script>
+    <title>News</title>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
